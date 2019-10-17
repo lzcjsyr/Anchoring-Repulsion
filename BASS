@@ -1,0 +1,125 @@
+##############
+#  1. BASS ###
+##############
+
+BASS_discrete <- function(lower, upper, sensory_sd, sample_size = 10000, anchor) {
+    
+    standard_prob <- vector(); ave_sample_B <- vector()
+    estimation <- matrix(0, sample_size, upper-lower+1)
+    for (k in lower:upper) {
+        
+        # sensory representation
+        sensory <- dnorm(lower:upper, mean = k, sd = sensory_sd) * 
+            ddunif(lower:upper, min = lower, max = upper)
+        for (i in 1:length(lower:upper)) 
+        {standard_prob[i] <- sensory[i]/sum(sensory)}
+        
+        total_estimate <- vector(); sample_count_B <- 0
+        for (n in 1:sample_size) {
+            
+            i = 0; j = 0; continue <- TRUE; sample = vector()
+            while (continue == TRUE) {
+                
+                temp <- sample(c(lower:upper), 1, replace = TRUE, prob = standard_prob)
+                if (temp > anchor) {j = j + 1} # binomial sampling
+                else {i = i + 1}
+                
+                continue <- decision[i+1,j+1] # cointinue <- FALSE when (i,j) hit the boundary
+                sample <- append(sample, temp)
+            }
+            
+            sample_count_B <- sample_count_B + length(sample)
+            estimate <- mean(sample)
+            total_estimate <- append(total_estimate, estimate)
+        }
+        
+        ave_sample_B <- append(ave_sample_B, sample_count_B/sample_size)
+        estimation[,(k-lower+1)] <- total_estimate # averge of each sample
+    }
+    
+    ave_sample_B <<- ave_sample_B
+    colnames(estimation) <- lower:upper
+    estimation <- as.data.frame(estimation)
+    return(estimation)
+}
+
+######################
+# 2. BASS Analysis ###
+######################
+
+lower <- 31; upper <- 70; anchor <- 50.5
+data_B.10 <- BASS_discrete(lower = lower, upper = upper, 10, anchor = anchor)
+data_B.20 <- BASS_discrete(lower = lower, upper = upper, 20, anchor = anchor)
+data_B.30 <- BASS_discrete(lower = lower, upper = upper, 30, anchor = anchor)
+
+data_B <- BASS_discrete(lower = lower, upper = upper, 10, anchor = anchor)
+ave_sample_B.10 <- ave_sample_B
+ave_sample_B.10[20]
+
+A <- ggplot(data_B.10,aes(x=data_B.10$"50")) + ggtitle("A: SD = 10")  + geom_density() +
+    geom_vline(xintercept=anchor, linetype="dotted") + theme_test() + 
+    xlab("Estimated Number of Dots") + ylab("Density")
+B <- ggplot(data_B.20,aes(x=data_B.20$"50")) + ggtitle("B: SD = 20")  + geom_density() +
+    geom_vline(xintercept=anchor, linetype="dotted") + theme_test() + 
+    xlab("Estimated Number of Dots") + ylab("Density")
+C <- ggplot(data_B.30,aes(x=data_B.30$"50")) + ggtitle("C: SD = 30")  + geom_density() +
+    geom_vline(xintercept=anchor, linetype="dotted") + theme_test() + 
+    xlab("Estimated Number of Dots") + ylab("Density")
+
+grid.arrange(A, B, C, nrow = 1, left = "True Number of Dots: 50")
+
+#ave_estimate <- vector() 
+#for (i in 1:10) {
+#    if (i <= 5) {ave_estimate<-append(ave_estimate, mean(data_B[which(data_B[,i]<anchor),i]))}
+#    if (i >= 6) {ave_estimate<-append(ave_estimate, mean(data_B[which(data_B[,i]>anchor),i]))}
+#}
+
+ave_estimate <- colMeans(data_B)
+
+prob_accept <- vector()
+for (i in 1:(upper-lower+1)) {
+    prob_accept <- append(prob_accept,length(which(data_B[,i] > anchor))/length(data_B[,i]))
+}
+
+probability_B <- data.frame(Dots = lower:upper, prob_accept, ave_estimate)
+ggplot(probability_B, aes(Dots, prob_accept)) + geom_point() + geom_line() + 
+    geom_hline(yintercept = 0.5, linetype="dotted") + ylim(0, 1) + ggtitle("BASS") +
+    geom_vline(xintercept = anchor, linetype="dotted") + xlim(lower, upper) + 
+    xlab("True Number of Dots") + ylab("Proportion Judged More Than 25 Dots")
+ggplot(probability_B, aes(Dots, ave_estimate)) + geom_point() + geom_line() +
+    xlab("True Number of Dots") + ylab("Estimated Number of Dots") + ggtitle("BASS") +
+    geom_abline(intercept = 0, slope = 1) + ylim(lower, upper) + xlim(lower, upper)
+
+######################
+# 3. Explain Graph ###
+######################
+
+prob <- dnorm(lower:upper, mean = 40, sd = 20) * ddunif(lower:upper, min = lower, max = upper)
+standard_prob <- vector(); Dots <- lower:upper
+for (i in 1:length(lower:upper)) {standard_prob[i] <- prob[i]/sum(prob)}
+sensory <- data.frame(standard_prob, Dots)
+
+ggplot(sensory, aes(x=Dots, y = standard_prob)) + xlab("Number of Dots") + ylab("Probability") +
+    ggtitle("Sensory Representation") + geom_bar(stat="identity") + theme_classic() + 
+    geom_vline(xintercept = anchor, linetype="dotted")
+
+################
+# 4. heatmap ###
+################
+
+data_B.R <- round(data_B)
+data_B.heatmap <- matrix(0, upper-lower+1, upper-lower+1)
+for (n in 1:(upper-lower+1)) {
+    estimate.r <- vector()
+    for (i in 1:(upper-lower+1)) {
+        estimate.r <- append(estimate.r, length(which(data_B.R[,n] == lower+i-1)))
+    }
+    data_B.heatmap[,n] <- estimate.r
+} # column: true number; row: estimate
+colnames(data_B.heatmap) <- lower:upper; rownames(data_B.heatmap) <- lower:upper
+data_B.M <- melt(data_B.heatmap)
+
+heatmap_B <- ggplot(data_B.M, aes(x = X2, y = X1, fill = value)) + geom_tile(color="white") + 
+    scale_fill_gradient(low = "white", high = "steelblue") + ggtitle("BASS") + 
+    xlim(lower,upper) + ylim(lower,upper) + geom_hline(yintercept = anchor) + theme_test() + 
+    xlab("True Number of Dots") + ylab("Estimates Number of Dots")
