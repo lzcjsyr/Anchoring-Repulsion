@@ -1,0 +1,82 @@
+##################
+# 1. BASS & SC ###
+##################
+
+BASS_SC <- function(lower, upper, sensory_sd, sample_size = 10000, anchor) {
+    
+    standard_prob <- vector(); estimation <- matrix(0, sample_size, upper-lower+1)
+    for (k in lower:upper) {
+        
+        # sensory representation
+        sensory <- dnorm(lower:upper, mean = k, sd = sensory_sd) * 
+            ddunif(lower:upper, min = lower, max = upper)
+        for (i in 1:length(lower:upper)) 
+        {standard_prob[i] <- sensory[i]/sum(sensory)}
+        
+        total_estimate <- vector()
+        for (n in 1:sample_size) {
+            
+            i = 0; j = 0; continue <- TRUE; sample = vector()
+            while (continue == TRUE) {
+                
+                temp <- sample(c(lower:upper), 1, replace = TRUE, prob = standard_prob)
+                if (temp > anchor) {j = j + 1} # binomial sampling
+                else {i = i + 1}
+                
+                continue <- decision[i+1,j+1] # cointinue <- FALSE when (i,j) hit the boundary
+                sample <- append(sample, temp)
+            }
+            
+            if (j > i) {estimate <- mean(sample[which(sample > anchor)])}
+            if (i > j) {estimate <- mean(sample[which(sample < anchor)])} 
+            total_estimate <- append(total_estimate, estimate)
+        }
+        estimation[,(k-lower+1)] <- total_estimate # averge of each sample
+    }
+    colnames(estimation) <- lower:upper
+    estimation <- as.data.frame(estimation)
+    return(estimation)
+}
+
+###################
+# 2. Simulation ###
+###################
+
+lower <- 31; upper <- 70; anchor <- 50.5
+data_BS <- BASS_SC(lower = lower, upper = upper, 10, anchor = anchor)
+
+#######################
+# 3. Heatmap & Hole ###
+#######################
+
+BS_hole <- ggplot(data_BS, aes(x = data_BS$"50")) + xlab("Estimated Number of Dots") + 
+    geom_vline(xintercept=50.5, linetype="dotted") + geom_density() + theme_test() +
+    ggtitle("A: True number of Dots = 50; SD = 10") + xlim(30, 70) + ylab("Density")
+
+data_BS.M <- heat_map(data_BS)
+heatmap_BS <- ggplot(data_BS.M, aes(x = X2, y = X1, fill = value)) + geom_tile(color="white") +
+    scale_fill_gradient(low = "white", high = "steelblue") + ggtitle("B") + theme_test() +
+    xlim(lower,upper) + ylim(lower,upper) + geom_hline(yintercept = anchor,linetype = "dotted") +
+    xlab("True Number of Dots") + ylab("Estimated Number of Dots")
+
+grid.arrange(BS_hole, heatmap_BS, nrow = 1)
+
+###################
+# 4. Additional ###
+###################
+
+ave_estimate <- colMeans(data_BS)
+
+prob_accept <- vector()
+for (i in 1:(upper-lower+1)) {
+    prob_accept <- append(prob_accept,length(which(data_BS[,i] > anchor))/length(data_BS[,i]))
+}
+
+probability_BS <- data.frame(Dots = lower:upper, prob_accept, ave_estimate)
+ggplot(probability_BS, aes(Dots, prob_accept)) + geom_point() + geom_line() + 
+    geom_hline(yintercept = 0.5, linetype="dotted") + ylim(0, 1) + ggtitle("BASS & SC") +
+    geom_vline(xintercept = anchor, linetype="dotted") + xlim(lower, upper) + 
+    xlab("True Number of Dots") + ylab("Proportion Judged More Than 25 Dots")
+ggplot(probability_BS, aes(Dots, ave_estimate)) + geom_point() + geom_line() +
+    xlab("True Number of Dots") + ylab("Estimated Number of Dots") + ggtitle("BASS & SC") +
+    geom_abline(intercept = 0, slope = 1) + ylim(lower, upper) + xlim(lower, upper)
