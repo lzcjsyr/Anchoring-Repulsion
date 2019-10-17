@@ -1,0 +1,85 @@
+library(plotly)
+library(reshape)
+install.packages("gridExtra"); library(gridExtra)
+
+heat_map <- function(data) {
+    
+    data_MB.R <- round(data)
+    data_MB.heatmap <- matrix(0, upper-lower+1, upper-lower+1)
+    for (n in 1:(upper-lower+1)) {
+        estimate.r <- vector()
+        for (i in 1:(upper-lower+1)) {
+            estimate.r <- append(estimate.r, length(which(data_MB.R[,n] == lower+i-1)))
+        }
+        data_MB.heatmap[,n] <- estimate.r
+    } # column: true number; row: estimate
+    colnames(data_MB.heatmap) <- lower:upper; rownames(data_MB.heatmap) <- lower:upper
+    data_MB.M <- melt(data_MB.heatmap)
+    return(data_MB.M)
+}
+
+#############
+# 1. MCMC ###
+#############
+
+data_M.M <- heat_map(data_M50.20)
+
+heatmap_M <- ggplot(data_M.M, aes(x = X2, y = X1, fill = value)) + geom_tile(color="white") + 
+    scale_fill_gradient(low = "white", high = "steelblue") +  ggtitle("A: MCMC") + theme_test() +
+    xlim(lower,upper) + ylim(lower,upper) + geom_hline(yintercept = anchor,linetype = "dotted") +
+    xlab("True Number of Dots") + ylab("Estimated Number of Dots")
+
+#############
+# 2. BASS ###
+#############
+
+data_B.M <- heat_map(data_B.10)
+
+heatmap_B <- ggplot(data_B.M, aes(x = X2, y = X1, fill = value)) + geom_tile(color="white") + 
+    scale_fill_gradient(low = "white", high = "steelblue") +  ggtitle("B: BASS") + theme_test() +
+    xlim(lower,upper) + ylim(lower,upper) + geom_hline(yintercept = anchor,linetype = "dotted") +
+    xlab("True Number of Dots") + ylab("Estimated Number of Dots")
+
+##################
+# 3. BASS & SC ###
+##################
+
+data_BS.M <- heat_map(data_BS)
+
+heatmap_BS <- ggplot(data_BS.M, aes(x = X2, y = X1, fill = value)) + geom_tile(color="white") + 
+    scale_fill_gradient(low = "white", high = "steelblue") +  ggtitle("C: BASS-SC") + 
+    xlim(lower,upper) + ylim(lower,upper) + geom_hline(yintercept = anchor,linetype = "dotted") +
+    xlab("True Number of Dots") + ylab("Estimated Number of Dots") + theme_test()
+
+
+####################
+# 4. MCMC & BASS ###
+####################
+
+data_MB.M <- heat_map(data_MB.10.5)
+
+heatmap_MB <- ggplot(data_MB.M, aes(x = X2, y = X1, fill = value)) + geom_tile(color="white") + 
+    scale_fill_gradient(low = "white", high = "steelblue") +  ggtitle("D: MCMC-BASS") + 
+    xlim(lower,upper) + ylim(lower,upper) + geom_hline(yintercept = anchor,linetype = "dotted") +
+    xlab("True Number of Dots") + ylab("Estimated Number of Dots") + theme_test()
+
+#######################
+# 5. MCMC BASS & SC ###
+#######################
+
+data_MBS.M <- heat_map(data_MBS.10.5)
+
+heatmap_MBS <- ggplot(data_MBS.M, aes(x = X2, y = X1, fill = value)) + geom_tile(color="white") + 
+    scale_fill_gradient(low = "white", high = "steelblue") +  ggtitle("E: MCMC-BASS-SC") + 
+    xlim(lower,upper) + ylim(lower,upper) + geom_hline(yintercept = anchor,linetype = "dotted") +
+    xlab("True Number of Dots") + ylab("Estimated Number of Dots") + theme_test()
+
+
+###################
+# Plots Arrange ###
+###################
+
+grid.arrange(heatmap_M, heatmap_B, heatmap_BS, heatmap_MB, heatmap_MBS, nrow = 2)
+
+
+
