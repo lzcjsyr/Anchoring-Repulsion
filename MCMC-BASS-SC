@@ -1,0 +1,169 @@
+###################################
+# 1. Continuous MCMC with Limit ###
+###################################
+
+MCMC_Limit <- function(i, t_mean, t_sd, initial, p_sd, lower, upper) {
+    current <- initial; sample <- vector()
+    if (i <= 0) {return(NA)}
+    for (i in 1:i) {
+        proposal <- current + rnorm(1, 0, p_sd)
+        
+        p_density <- dnorm(proposal, t_mean, t_sd); c_density <- dnorm(current, t_mean, t_sd)
+        accept <- (p_density/c_density) > runif(1, min = 0, max = 1)
+        
+        if(accept && proposal <= upper && proposal >= lower) 
+        {current <- proposal; sample <- append(sample, current)} 
+    }
+    if (length(sample) == 0) {return(NA)}
+    else                     {return(sample)}
+}
+
+##############################
+# 2. MCMC-BASS-SC Function ###
+##############################
+
+MCMC_BASS_SC <- function(lower, upper, sample_size = 10000, anchor, t_SD, p_SD) {
+    
+    standard_prob <- vector(); estimation <- matrix(0, sample_size, upper-lower+1)
+    for (k in lower:upper) {
+        
+        total_estimate <- vector()
+        for (n in 1:sample_size) {
+            
+            i = 0; j = 0; continue <- TRUE
+            sample = vector(); sample[1] <- anchor
+            while (continue == TRUE) {
+                
+                initial <- sample[length(sample)]
+                temp <- MCMC_Limit(1, t_mean = k, t_sd = t_SD, initial, p_SD, lower, upper)
+                if (is.na(temp) == FALSE) {
+                    sample <- append(sample, temp)
+                    if (temp > anchor) {j = j + 1} # binomial sampling
+                    else {i = i + 1}
+                    continue <- decision[i+1,j+1] # cointinue<-FALSE when (i,j) hit the boundary
+                }
+            }
+            
+            if (j > i) {estimate <- mean(sample[which(sample > anchor)])}
+            if (i > j) {estimate <- mean(sample[which(sample < anchor)])} 
+            total_estimate <- append(total_estimate, estimate)
+        }
+        estimation[,(k-lower+1)] <- total_estimate # averge of each sample
+    }
+    colnames(estimation) <- lower:upper
+    estimation <- as.data.frame(estimation)
+    return(estimation)
+}
+
+###################
+# 3. Simulation ###
+###################
+
+lower <- 31; upper <- 70; anchor <- 50.5
+
+data_MBS.10.5 <- MCMC_BASS_SC(lower = lower, upper = upper, anchor = anchor, t_SD = 10, p_SD = 5)
+data_MBS.20.5 <- MCMC_BASS_SC(lower = lower, upper = upper, anchor = anchor, t_SD = 20, p_SD = 5)
+data_MBS.30.5 <- MCMC_BASS_SC(lower = lower, upper = upper, anchor = anchor, t_SD = 30, p_SD = 5)
+
+data_MBS.10.10 <- MCMC_BASS_SC(lower = lower, upper = upper, anchor = anchor, t_SD = 10, p_SD = 10)
+data_MBS.20.10 <- MCMC_BASS_SC(lower = lower, upper = upper, anchor = anchor, t_SD = 20, p_SD = 10)
+data_MBS.30.10 <- MCMC_BASS_SC(lower = lower, upper = upper, anchor = anchor, t_SD = 30, p_SD = 10)
+
+data_MBS.10.15 <- MCMC_BASS_SC(lower = lower, upper = upper, anchor = anchor, t_SD = 10, p_SD = 15)
+data_MBS.20.15 <- MCMC_BASS_SC(lower = lower, upper = upper, anchor = anchor, t_SD = 20, p_SD = 15)
+data_MBS.30.15 <- MCMC_BASS_SC(lower = lower, upper = upper, anchor = anchor, t_SD = 30, p_SD = 15)
+
+################
+# 4. Heatmap ###
+################
+
+MBS.10.5 <- ggplot(data_MBS.10.5, aes(x = data_MBS.10.5$"50")) + geom_density() + xlim(30,70) +
+    ggtitle("A: Posterior SD = 5") + geom_vline(xintercept=anchor, linetype = "dotted") + 
+    theme_test() + xlab("Estimated Number of Dots") + ylab("Density")
+MBS.20.5 <- ggplot(data_MBS.20.5, aes(x = data_MBS.20.5$"50")) + geom_density() + xlim(30,70) +
+    ggtitle("B: Posterior SD = 10") + geom_vline(xintercept=anchor, linetype = "dotted") + 
+    theme_test() + xlab("Estimated Number of Dots") + ylab("Density")
+MBS.30.5 <- ggplot(data_MBS.30.5, aes(x = data_MBS.30.5$"50")) + geom_density() + xlim(30,70) +
+    ggtitle("C: Posterior SD = 15") + geom_vline(xintercept=anchor, linetype = "dotted") + 
+    theme_test() + xlab("Estimated Number of Dots") + ylab("Density")
+grid.arrange(MBS.10.5, MBS.20.5, MBS.30.5, nrow = 1, left = "Proposal SD = 5")
+
+MBS.10.10 <- ggplot(data_MBS.10.10, aes(x = data_MBS.10.10$"50")) + geom_density() + xlim(30,70) +
+    ggtitle("D: Posterior SD = 5") + geom_vline(xintercept=anchor, linetype = "dotted") + 
+    theme_test() + xlab("Estimated Number of Dots") + ylab("Density")
+MBS.20.10 <- ggplot(data_MBS.20.10, aes(x = data_MBS.20.10$"50")) + geom_density() + xlim(30,70) +
+    ggtitle("E: Posterior SD = 10") + geom_vline(xintercept=anchor, linetype = "dotted") + 
+    theme_test() + xlab("Estimated Number of Dots") + ylab("Density")
+MBS.30.10 <- ggplot(data_MBS.30.10, aes(x = data_MBS.30.10$"50")) + geom_density() + xlim(30,70) +
+    ggtitle("F: Posterior SD = 15") + geom_vline(xintercept=anchor, linetype = "dotted") + 
+    theme_test() + xlab("Estimated Number of Dots") + ylab("Density")
+grid.arrange(MBS.10.10, MBS.20.10, MBS.30.10, nrow = 1, left = "Proposal SD = 10")
+
+MBS.10.15 <- ggplot(data_MBS.10.15, aes(x = data_MBS.10.15$"50")) + geom_density() + xlim(30,70) +
+    ggtitle("A: Posterior SD = 5") + geom_vline(xintercept=anchor, linetype = "dotted") + 
+    theme_test() + xlab("Estimated Number of Dots") + ylab("Density")
+MBS.20.15 <- ggplot(data_MBS.20.15, aes(x = data_MBS.20.15$"50")) + geom_density() + xlim(30,70) +
+    ggtitle("B: Posterior SD = 10") + geom_vline(xintercept=anchor, linetype = "dotted") + 
+    theme_test() + xlab("Estimated Number of Dots") + ylab("Density")
+MBS.30.15 <- ggplot(data_MBS.30.15, aes(x = data_MBS.30.15$"50")) + geom_density() + xlim(30,70) +
+    ggtitle("C: Posterior SD = 15") + geom_vline(xintercept=anchor, linetype = "dotted") + 
+    theme_test() + xlab("Estimated Number of Dots") + ylab("Density")
+grid.arrange(MBS.10.15, MBS.20.15, MBS.30.15, nrow = 1, left = "Proposal SD = 15")
+
+###################
+# 4. Additional ###
+###################
+
+data_MBS.5.3 <- MCMC_BASS_SC(lower = lower, upper = upper, anchor = anchor, t_SD = 5, p_SD = 3)
+data_MBS.5.5 <- MCMC_BASS_SC(lower = lower, upper = upper, anchor = anchor, t_SD = 5, p_SD = 5)
+data_MBS.5.7 <- MCMC_BASS_SC(lower = lower, upper = upper, anchor = anchor, t_SD = 5, p_SD = 7)
+
+MBS.5.3 <- ggplot(data_MBS.5.3, aes(x = data_MBS.5.3$"50")) + geom_density() + xlim(30,70) +
+    ggtitle("A: Posterior SD = 3") + geom_vline(xintercept=anchor, linetype = "dotted") + 
+    theme_test() + xlab("Estimated Number of Dots") + ylab("Density")
+MBS.5.5 <- ggplot(data_MBS.5.5, aes(x = data_MBS.5.5$"50")) + geom_density() + xlim(30,70) +
+    ggtitle("B: Posterior SD = 5") + geom_vline(xintercept=anchor, linetype = "dotted") + 
+    theme_test() + xlab("Estimated Number of Dots") + ylab("Density")
+MBS.5.7 <- ggplot(data_MBS.5.7, aes(x = data_MBS.5.7$"50")) + geom_density() + xlim(30,70) +
+    ggtitle("C: Posterior SD = 7") + geom_vline(xintercept=anchor, linetype = "dotted") + 
+    theme_test() + xlab("Estimated Number of Dots") + ylab("Density")
+grid.arrange(MBS.5.3, MBS.5.5, MBS.5.7, nrow = 1, left = "Posterior SD = 5")
+
+ave_estimate <- colMeans(data_MBC)
+prob_accept <- vector()
+for (i in 1:(upper-lower+1)) {
+    prob_accept <- append(prob_accept,length(which(data_MBC[,i]>=anchor))/length(data_MBC[,i]))
+}
+
+probability_MBC <- data.frame(Dots = 21:30, prob_accept, ave_estimate)
+# Why not symmetric？
+ggplot(probability_MBC, aes(Dots, prob_accept)) + geom_point() + geom_line() + 
+    geom_hline(yintercept = 0.5, linetype="dotted") + ylim(0, 1) + ggtitle("MCMC, BASS & SC") +
+    geom_vline(xintercept = anchor, linetype="dotted") + xlim(lower, upper) + 
+    xlab("True Number of Dots") + ylab("Proportion Judged More Than 25 Dots")
+ggplot(probability_MBC, aes(Dots, ave_estimate)) + geom_point() + geom_line() +
+    xlab("True Number of Dots") + ylab("Estimated Number of Dots") + ggtitle("MCMC, BASS & SC") +
+    geom_abline(intercept = 0, slope = 1) + ylim(lower, upper) + xlim(lower, upper)
+
+data_MBS.5.5 <- MCMC_BASS_SC(lower = lower, upper = upper, anchor = anchor, t_SD = 5, p_SD = 5)
+data_MBS.10.5 <- MCMC_BASS_SC(lower = lower, upper = upper, anchor = anchor, t_SD = 10, p_SD = 5)
+data_MBS.15.5 <- MCMC_BASS_SC(lower = lower, upper = upper, anchor = anchor, t_SD = 15, p_SD = 5)
+
+data_MBS1 <- heat_map(data_MBS.5.5)
+data_MBS2 <- heat_map(data_MBS.10.5)
+data_MBS3 <- heat_map(data_MBS.15.5)
+
+heatmap_MBS1 <- ggplot(data_MBS1, aes(x = X2, y = X1, fill = value)) + geom_tile(color="white")+
+    scale_fill_gradient(low = "white", high = "steelblue") + theme_test() + 
+    xlim(lower,upper) + ylim(lower,upper) + geom_hline(yintercept = anchor, linetype = "dotted") +
+    xlab("True Number of Dots") + ylab("Estimated Number of Dots") + ggtitle("A: Posterior SD = 5")
+heatmap_MBS2 <- ggplot(data_MBS2, aes(x = X2, y = X1, fill = value)) + geom_tile(color="white")+
+    scale_fill_gradient(low = "white", high = "steelblue") + theme_test() + 
+    xlim(lower,upper) + ylim(lower,upper) + geom_hline(yintercept = anchor, linetype = "dotted") +
+    xlab("True Number of Dots") + ylab("Estimated Number of Dots") + ggtitle("B: Posterior SD = 10")
+heatmap_MBS3 <- ggplot(data_MBS3, aes(x = X2, y = X1, fill = value)) + geom_tile(color="white")+
+    scale_fill_gradient(low = "white", high = "steelblue") + theme_test() + 
+    xlim(lower,upper) + ylim(lower,upper) + geom_hline(yintercept = anchor, linetype = "dotted") +
+    xlab("True Number of Dots") + ylab("Estimated Number of Dots") + ggtitle("C: Posterior SD = 15")
+
+grid.arrange(heatmap_MBS1, heatmap_MBS2, heatmap_MBS3, nrow = 1, left = "Proposal SD = 5")
