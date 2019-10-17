@@ -1,0 +1,153 @@
+##############
+#  1. MCMC ###
+##############
+
+MCMC_Limit <- function(i, t_mean, t_sd, initial, p_sd, lower, upper) {
+    current <- initial; sample <- vector()
+    if (i <= 0) {return(NA)}
+    for (i in 1:i) {
+        proposal <- current + rnorm(1, 0, p_sd)
+        
+        p_density <- dnorm(proposal, t_mean, t_sd); c_density <- dnorm(current, t_mean, t_sd)
+        accept <- (p_density/c_density) > runif(1, min = 0, max = 1)
+        
+        if(accept && proposal <= upper && proposal >= lower) 
+        {current <- proposal; sample <- append(sample, current)} 
+    }
+    if (length(sample) == 0) {return(NA)}
+    else                     {return(sample)}
+}
+
+MCMC_wrapper <- function(lower, upper, anchor, iteration) {
+    
+    data_M <- matrix(0, 10000, upper-lower+1); colnames(data_M) <- lower:upper
+    for (i in lower:upper) {
+        estimate <- vector()
+        for (n in 1:10000) {
+            temp <- mean(MCMC_Limit(i = iteration, t_mean=i, t_sd=5, anchor, 5, lower, upper))
+            estimate <- append(estimate, temp)
+        }
+        data_M[,(i-lower+1)] <- estimate
+    }
+    data_M <- as.data.frame(data_M)
+    return(data_M)
+}
+
+###################
+# 2. Simulation ###
+###################
+
+lower <- 31; upper <- 70; anchor <- 50.5
+
+data_M40.10 <- MCMC_wrapper(lower, upper, 40.5, 10)
+data_M50.10 <- MCMC_wrapper(lower, upper, 50.5, 10)
+data_M60.10 <- MCMC_wrapper(lower, upper, 60.5, 10)
+
+data_M40.20 <- MCMC_wrapper(lower, upper, 40.5, 20)
+data_M50.20 <- MCMC_wrapper(lower, upper, 50.5, 20)
+data_M60.20 <- MCMC_wrapper(lower, upper, 60.5, 20)
+
+data_M40.30 <- MCMC_wrapper(lower, upper, 40.5, 30)
+data_M50.30 <- MCMC_wrapper(lower, upper, 50.5, 30)
+data_M60.30 <- MCMC_wrapper(lower, upper, 60.5, 30)
+
+################
+# 3. Heatmap ###
+################
+
+data_M40.10M <- heat_map(data_M40.10)
+data_M50.10M <- heat_map(data_M50.10)
+data_M60.10M <- heat_map(data_M60.10)
+
+data_M40.20M <- heat_map(data_M40.20)
+data_M50.20M <- heat_map(data_M50.20)
+data_M60.20M <- heat_map(data_M60.20)
+
+data_M40.30M <- heat_map(data_M40.30)
+data_M50.30M <- heat_map(data_M50.30)
+data_M60.30M <- heat_map(data_M60.30)
+
+# 10 iteration
+heatmap_M40.10M <- ggplot(data_M40.10M, aes(x = X2, y = X1, fill = value)) + theme_test() + 
+    geom_tile(color="white") + ggtitle("A: anchor = 40.5") + 
+    scale_fill_gradient(low = "white", high = "steelblue") +  
+    xlim(lower,upper) + ylim(lower,upper) + geom_hline(yintercept = 40.5, linetype="dotted") +
+    xlab("True Number of Dots") + ylab("Estimated Number of Dots") 
+heatmap_M50.10M <- ggplot(data_M50.10M, aes(x = X2, y = X1, fill = value)) + theme_test() + 
+    geom_tile(color="white") + ggtitle("B: anchor = 50.5") + 
+    scale_fill_gradient(low = "white", high = "steelblue") +  
+    xlim(lower,upper) + ylim(lower,upper) + geom_hline(yintercept = 50.5, linetype="dotted") +
+    xlab("True Number of Dots") + ylab("Estimated Number of Dots") 
+heatmap_M60.10M <- ggplot(data_M60.10M, aes(x = X2, y = X1, fill = value)) + theme_test() + 
+    geom_tile(color="white") + ggtitle("C: anchor = 60.5") + 
+    scale_fill_gradient(low = "white", high = "steelblue") +  
+    xlim(lower,upper) + ylim(lower,upper) + geom_hline(yintercept = 60.5, linetype="dotted") +
+    xlab("True Number of Dots") + ylab("Estimated Number of Dots") 
+grid.arrange(heatmap_M40.10M, heatmap_M50.10M, heatmap_M60.10M, nrow=1, left="Iterations = 10")
+
+# 20 iteration
+heatmap_M40.20M <- ggplot(data_M40.20M, aes(x = X2, y = X1, fill = value)) + theme_test() + 
+    geom_tile(color="white") + ggtitle("D: anchor = 40.5") + 
+    scale_fill_gradient(low = "white", high = "steelblue") +  
+    xlim(lower,upper) + ylim(lower,upper) + geom_hline(yintercept = 40.5, linetype="dotted") +
+    xlab("True Number of Dots") + ylab("Estimated Number of Dots") 
+heatmap_M50.20M <- ggplot(data_M50.20M, aes(x = X2, y = X1, fill = value)) + theme_test() + 
+    geom_tile(color="white") + ggtitle("E: anchor = 50.5") + 
+    scale_fill_gradient(low = "white", high = "steelblue") +  
+    xlim(lower,upper) + ylim(lower,upper) + geom_hline(yintercept = 50.5, linetype="dotted") +
+    xlab("True Number of Dots") + ylab("Estimated Number of Dots") 
+heatmap_M60.20M <- ggplot(data_M60.20M, aes(x = X2, y = X1, fill = value)) + theme_test() + 
+    geom_tile(color="white") + ggtitle("F: anchor = 60.5") + 
+    scale_fill_gradient(low = "white", high = "steelblue") +  
+    xlim(lower,upper) + ylim(lower,upper) + geom_hline(yintercept = 60.5, linetype="dotted") +
+    xlab("True Number of Dots") + ylab("Estimated Number of Dots") 
+grid.arrange(heatmap_M40.20M, heatmap_M50.20M, heatmap_M60.20M, nrow=1, left="Iterations = 20")
+
+# 30 iteration
+heatmap_M40.30M <- ggplot(data_M40.30M, aes(x = X2, y = X1, fill = value)) + theme_test() + 
+    geom_tile(color="white") + ggtitle("I: anchor = 40.5") + 
+    scale_fill_gradient(low = "white", high = "steelblue") +  
+    xlim(lower,upper) + ylim(lower,upper) + geom_hline(yintercept = 40.5, linetype="dotted") +
+    xlab("True Number of Dots") + ylab("Estimated Number of Dots") 
+heatmap_M50.30M <- ggplot(data_M50.30M, aes(x = X2, y = X1, fill = value)) + theme_test() + 
+    geom_tile(color="white") + ggtitle("J: anchor = 50.5") + 
+    scale_fill_gradient(low = "white", high = "steelblue") +  
+    xlim(lower,upper) + ylim(lower,upper) + geom_hline(yintercept = 50.5, linetype="dotted") +
+    xlab("True Number of Dots") + ylab("Estimated Number of Dots") 
+heatmap_M60.30M <- ggplot(data_M60.30M, aes(x = X2, y = X1, fill = value)) + theme_test() + 
+    geom_tile(color="white") + ggtitle("K: anchor = 60.5") + 
+    scale_fill_gradient(low = "white", high = "steelblue") +  
+    xlim(lower,upper) + ylim(lower,upper) + geom_hline(yintercept = 60.5, linetype="dotted") +
+    xlab("True Number of Dots") + ylab("Estimated Number of Dots") 
+grid.arrange(heatmap_M40.30M, heatmap_M50.30M, heatmap_M60.30M, nrow=1, left="Iterations = 30")
+
+###################
+# 3. Additional ###
+###################
+
+ggplot(data_M50.25, aes(x = data_M$"48")) + geom_histogram(aes(y =..density..), binwidth = 0.2)+
+    geom_vline(xintercept=50) + geom_density() + xlab("Estimate of Dots") + 
+    ggtitle("MCMC; 48 dots (Boundary = 50; p_sd = 2; t_sd = 3)")
+
+Density <- dnorm(lower:upper, 40, (upper-lower+1)/5); Dots <- lower:upper
+sensory <- data.frame(Density, Dots)
+ggplot(sensory, aes(x = Dots, y = Density)) + xlab("Number of Dots") + xlim(lower, upper) +
+    ggtitle("Sensory Representation") + geom_line() + theme_classic() + 
+    geom_vline(xintercept = anchor, linetype="dotted") + 
+    geom_vline(xintercept = lower) + geom_vline(xintercept = upper)
+
+ave_estimate <- colMeans(data_M)
+
+prob_accept <- vector()
+for (i in 1:(upper-lower+1)) {
+    prob_accept <- append(prob_accept,length(which(data_M[,i] > anchor))/length(data_M[,i]))
+}
+
+probability_B <- data.frame(Dots = lower:upper, prob_accept, ave_estimate)
+ggplot(probability_B, aes(Dots, prob_accept)) + geom_point() + geom_line() + 
+    geom_hline(yintercept = 0.5, linetype="dotted") + ylim(0, 1) + ggtitle("MCMC") +
+    geom_vline(xintercept = anchor, linetype="dotted") + xlim(lower, upper) + 
+    xlab("True Number of Dots") + ylab("Proportion Judged More Than 25 Dots")
+ggplot(probability_B, aes(Dots, ave_estimate)) + geom_point() + geom_line() +
+    xlab("True Number of Dots") + ylab("Estimated Number of Dots") + ggtitle("MCMC") +
+    geom_abline(intercept = 0, slope = 1) + ylim(lower, upper) + xlim(lower, upper)
