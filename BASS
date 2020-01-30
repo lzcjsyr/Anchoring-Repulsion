@@ -123,3 +123,4 @@ heatmap_B <- ggplot(data_B.M, aes(x = X2, y = X1, fill = value)) + geom_tile(col
     scale_fill_gradient(low = "white", high = "steelblue") + ggtitle("BASS") + 
     xlim(lower,upper) + ylim(lower,upper) + geom_hline(yintercept = anchor) + theme_test() + 
     xlab("True Number of Dots") + ylab("Estimates Number of Dots")
+
